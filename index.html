@@ -55,7 +55,7 @@
       display: flex;
       gap: 8px;
     }
-    input {
+    input[type="text"], input[type="password"] {
       flex: 1;
       padding: 14px;
       border-radius: 24px;
@@ -98,7 +98,7 @@
 
   <div class="settings">
     <div>Clé OpenRouter :</div>
-    <input type="password" id="apiKey" placeholder="Colle ta clé ici">
+    <input type="text" id="apiKey" placeholder="Colle ta clé ici (elle commence par sk-or-...)">
   </div>
 
   <div id="chat"></div>
@@ -118,9 +118,12 @@
     const input = document.getElementById('userInput');
     const apiKeyInput = document.getElementById('apiKey');
 
-    apiKeyInput.value = localStorage.getItem('openrouter_key') || '';
-    apiKeyInput.addEventListener('change', () => {
-      localStorage.setItem('openrouter_key', apiKeyInput.value);
+    // Charger la clé
+    const savedKey = localStorage.getItem('openrouter_key');
+    if (savedKey) apiKeyInput.value = savedKey;
+
+    apiKeyInput.addEventListener('input', () => {
+      localStorage.setItem('openrouter_key', apiKeyInput.value.trim());
     });
 
     let messages = [
@@ -140,8 +143,14 @@
       if (!text) return;
 
       const key = apiKeyInput.value.trim();
+      
       if (!key) {
-        alert("Colle d'abord ta clé OpenRouter en haut");
+        addMessage("⚠️ Colle ta clé OpenRouter en haut d'abord", false);
+        return;
+      }
+
+      if (!key.startsWith("sk-or-")) {
+        addMessage("⚠️ Ta clé semble incorrecte. Elle doit commencer par sk-or-", false);
         return;
       }
 
@@ -153,7 +162,7 @@
         const response = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
-            "Authorization": `Bearer ${key}`,
+            "Authorization": "Bearer " + key,
             "Content-Type": "application/json",
             "HTTP-Referer": "https://sticky-ai.vercel.app",
             "X-Title": "Sticky AI"
@@ -167,7 +176,7 @@
         const data = await response.json();
 
         if (data.error) {
-          addMessage("Erreur OpenRouter : " + (data.error.message || JSON.stringify(data.error)), false);
+          addMessage("❌ Erreur : " + (data.error.message || JSON.stringify(data.error)), false);
           return;
         }
 
@@ -176,7 +185,7 @@
         messages.push({ role: "assistant", content: reply });
 
       } catch (err) {
-        addMessage("Erreur réseau : " + err.message, false);
+        addMessage("❌ Erreur réseau : " + err.message, false);
       }
     }
 

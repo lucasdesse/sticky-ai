@@ -36,6 +36,7 @@
       border-radius: 18px;
       line-height: 1.4;
       font-size: 15px;
+      white-space: pre-wrap;
     }
     .user {
       background: #2563eb;
@@ -96,8 +97,8 @@
   <header>Sticky AI</header>
 
   <div class="settings">
-    <div>Clé OpenRouter (elle reste sur ton téléphone) :</div>
-    <input type="password" id="apiKey" placeholder="Colle ta clé OpenRouter ici">
+    <div>Clé OpenRouter :</div>
+    <input type="password" id="apiKey" placeholder="Colle ta clé ici">
   </div>
 
   <div id="chat"></div>
@@ -108,19 +109,16 @@
   </div>
 
   <script>
-    // Personnage par défaut (tu pourras le changer plus tard)
     const character = {
       name: "Luna",
-      personality: "Tu es Luna, une fille de 22 ans, naturelle, un peu timide mais chaleureuse. Tu parles de façon réaliste, comme une vraie personne. Tu utilises un langage simple et moderne. Tu es curieuse et tu poses des questions."
+      personality: "Tu es Luna, une fille de 22 ans, naturelle, un peu timide mais chaleureuse. Tu parles de façon réaliste et moderne, comme une vraie personne. Tu es curieuse et tu poses des questions."
     };
 
     const chatDiv = document.getElementById('chat');
     const input = document.getElementById('userInput');
     const apiKeyInput = document.getElementById('apiKey');
 
-    // Charger la clé sauvegardée
     apiKeyInput.value = localStorage.getItem('openrouter_key') || '';
-
     apiKeyInput.addEventListener('change', () => {
       localStorage.setItem('openrouter_key', apiKeyInput.value);
     });
@@ -161,18 +159,24 @@
             "X-Title": "Sticky AI"
           },
           body: JSON.stringify({
-            model: "meta-llama/llama-3.2-3b-instruct:free",
+            model: "openrouter/free",
             messages: messages
           })
         });
 
         const data = await response.json();
-        const reply = data.choices?.[0]?.message?.content || "Erreur de réponse";
-        
+
+        if (data.error) {
+          addMessage("Erreur OpenRouter : " + (data.error.message || JSON.stringify(data.error)), false);
+          return;
+        }
+
+        const reply = data.choices?.[0]?.message?.content || "Pas de réponse";
         addMessage(reply, false);
         messages.push({ role: "assistant", content: reply });
+
       } catch (err) {
-        addMessage("Erreur de connexion. Vérifie ta clé ou réessaie.", false);
+        addMessage("Erreur réseau : " + err.message, false);
       }
     }
 
@@ -180,8 +184,7 @@
       if (e.key === 'Enter') sendMessage();
     });
 
-    // Message de bienvenue
-    addMessage("Salut ! Je suis Luna. Tu peux me parler quand tu veux 😊", false);
+    addMessage("Salut ! Je suis Luna. Tu peux me parler 😊", false);
   </script>
 </body>
 </html>

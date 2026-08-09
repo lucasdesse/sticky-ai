@@ -22,6 +22,7 @@
       border-bottom: 1px solid #333;
       position: sticky;
       top: 0;
+      z-index: 10;
     }
     .key-box {
       padding: 12px 16px;
@@ -65,6 +66,7 @@
       flex-direction: column;
       gap: 10px;
       min-height: 60vh;
+      padding-bottom: 80px;
     }
     .msg {
       max-width: 85%;
@@ -136,7 +138,7 @@
   </div>
 
   <script>
-    const chars = [
+    var chars = [
       { name: "Luna", emoji: "👩", desc: "22 ans, douce", prompt: "Tu es Luna, 22 ans, douce et un peu timide. Tu parles naturellement en français." },
       { name: "Alex", emoji: "👨", desc: "25 ans, calme", prompt: "Tu es Alex, 25 ans, calme et protecteur. Tu parles naturellement en français." },
       { name: "Mia", emoji: "👩‍🦰", desc: "20 ans, énergique", prompt: "Tu es Mia, 20 ans, énergique et directe. Tu parles naturellement en français." },
@@ -145,22 +147,27 @@
       { name: "Léo", emoji: "🧔", desc: "24 ans, franc", prompt: "Tu es Léo, 24 ans, sportif et franc. Tu parles naturellement en français." }
     ];
 
-    let current = null;
-    let history = [];
+    var current = null;
+    var history = [];
 
-    const keyInput = document.getElementById("apiKey");
+    var keyInput = document.getElementById("apiKey");
     keyInput.value = localStorage.getItem("or_key") || "";
-    keyInput.oninput = () => localStorage.setItem("or_key", keyInput.value.trim());
+    keyInput.oninput = function() {
+      localStorage.setItem("or_key", keyInput.value.trim());
+    };
 
-    // Afficher les cartes
-    const grid = document.getElementById("grid");
-    chars.forEach(c => {
-      const div = document.createElement("div");
+    // Afficher les cartes (sans template literal pour éviter les problèmes de copier-coller)
+    var grid = document.getElementById("grid");
+    for (var i = 0; i < chars.length; i++) {
+      var c = chars[i];
+      var div = document.createElement("div");
       div.className = "card";
-      div.innerHTML = `<div class="emoji">\( {c.emoji}</div><div class="name"> \){c.name}</div><div class="desc">${c.desc}</div>`;
-      div.onclick = () => openChat(c);
+      div.innerHTML = '<div class="emoji">' + c.emoji + '</div><div class="name">' + c.name + '</div><div class="desc">' + c.desc + '</div>';
+      div.onclick = (function(char) {
+        return function() { openChat(char); };
+      })(c);
       grid.appendChild(div);
-    });
+    }
 
     function openChat(c) {
       current = c;
@@ -178,7 +185,7 @@
     }
 
     function addMsg(text, isUser) {
-      const d = document.createElement("div");
+      var d = document.createElement("div");
       d.className = "msg " + (isUser ? "user" : "ai");
       d.textContent = text;
       document.getElementById("messages").appendChild(d);
@@ -186,10 +193,10 @@
     }
 
     async function send() {
-      const text = document.getElementById("userInput").value.trim();
+      var text = document.getElementById("userInput").value.trim();
       if (!text || !current) return;
 
-      const key = keyInput.value.trim();
+      var key = keyInput.value.trim();
       if (!key.startsWith("sk-or-")) {
         addMsg("⚠️ Mets une vraie clé OpenRouter", false);
         return;
@@ -200,7 +207,7 @@
       history.push({ role: "user", content: text });
 
       try {
-        const res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
+        var res = await fetch("https://openrouter.ai/api/v1/chat/completions", {
           method: "POST",
           headers: {
             "Authorization": "Bearer " + key,
@@ -211,12 +218,12 @@
             messages: history
           })
         });
-        const data = await res.json();
+        var data = await res.json();
         if (data.error) {
           addMsg("❌ " + data.error.message, false);
           return;
         }
-        const reply = data.choices[0].message.content;
+        var reply = data.choices[0].message.content;
         addMsg(reply, false);
         history.push({ role: "assistant", content: reply });
       } catch (e) {
@@ -224,7 +231,7 @@
       }
     }
 
-    document.getElementById("userInput").addEventListener("keypress", e => {
+    document.getElementById("userInput").addEventListener("keypress", function(e) {
       if (e.key === "Enter") send();
     });
   </script>
